@@ -1,0 +1,12 @@
+textfile coded.txt enc AES CBC 89
+coded.txt plain.txt dec AES CBC 83
+coded.txt plain.txt dec AES CBC 79
+coded.txt plain.txt dec DES OFB 91
+coded.txt plain.txt dec DES OFB 102
+textfile coded.txt enc AES CBC 88
+textfile coded.txt enc AES CBC 75
+textfile coded.txt enc AES CBC 79
+textfile coded.txt enc AES CBC 74
+textfile coded.txt enc AES CBC 81
+textfile coded.txt enc AES CBC 79
+textfile coded.txt enc AES CBC 74

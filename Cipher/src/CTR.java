@@ -7,12 +7,20 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 
-public class CBC {
-    public void cbc_process(String IV, String algorithm, String inputFile, String outputFile, int blockSize, String key, String eORd) throws Exception {
+public class CTR {
+    public void ctr_process(String IV, String algorithm, String inputFile, String outputFile, int blockSize, String key, String eORd, String nonce) throws Exception {
         String iv1 = IV.substring(0,blockSize);
         byte[] IV_bytes = iv1.getBytes("UTF-8");
         ArrayList<byte[]> cipherTextList = new ArrayList<>();
-        if(eORd.equalsIgnoreCase("-e")) {
+        String counter = "";
+
+        if(eORd.equalsIgnoreCase("-e")){
+            byte[] b = "00000000".getBytes();
+            byte[] nonce_bytes = nonce.getBytes();
+            byte[] concatenate = new byte[b.length + nonce_bytes.length];
+            //System.out.println("boyut " + concatenate.length);
+            //System.arraycopy(text, 0, padding, 0, text.length);
+            //System.arraycopy(temp, 0, padding, text.length, temp.length);
             byte[] plainText = readByteFromFile(inputFile);
             byte[] paddingPlainText = padding(plainText, blockSize);
             byte[] _encryptedArray = new byte[paddingPlainText.length];
@@ -23,58 +31,53 @@ public class CBC {
                 System.arraycopy(paddingPlainText, i, tmpArr, 0, blockSize);
                 if(itr == 0)
                 {
-                    byte[] xorPlaintTemp = xor(tmpArr, IV_bytes, blockSize);
-                    byte[] _encrypted = encrypt(xorPlaintTemp, key, algorithm);
+                    System.out.println(new String(tmpArr,"UTF-8"));
+                    byte[] _encrypted = encrypt(IV_bytes, key, algorithm);
                     cipherTextList.add(_encrypted);
-                    System.arraycopy(_encrypted, 0, _encryptedArray, i, blockSize);
+                    byte[] xorPlaintTemp = xor(tmpArr, _encrypted, blockSize);
+                    System.arraycopy(xorPlaintTemp, 0, _encryptedArray, i, blockSize);
                     itr++;
                 }
                 else if(itr > 0) {
-                    byte[] xorPlainTemp = xor(tmpArr, cipherTextList.get(itr - 1), blockSize);
-                    byte[] _encrypted = encrypt(xorPlainTemp, key, algorithm);
+                    System.out.println(new String(tmpArr,"UTF-8"));
+                    byte[] _encrypted = encrypt(cipherTextList.get(itr-1), key, algorithm);
                     cipherTextList.add(_encrypted);
-                    System.arraycopy(_encrypted, 0, _encryptedArray, i, blockSize);
+                    byte[] xorPlaintTemp = xor(tmpArr, _encrypted, blockSize);
+                    System.arraycopy(xorPlaintTemp, 0, _encryptedArray, i, blockSize);
                     itr++;
                 }
             }
             writeFile(outputFile, _encryptedArray);
-            System.out.println("Encrypted Completed and Write to " + outputFile + " with " + algorithm);
+            System.out.println("Encrypted Completed and Write to " + outputFile + " with " + algorithm + " OFB mode ");
         }
         else if(eORd.equalsIgnoreCase("-d")){
-            ArrayList<byte[]> ciphertext = new ArrayList<>();
+            byte[] plainText = readByteFromFile(inputFile);
+            byte[] _decryptedArray = new byte[plainText.length];
             int itr = 0;
-            byte[] cipherText = readByteFromFile(inputFile);
-            byte[] _decryptedArray = new byte[cipherText.length];
-
-            for (int i=0; i<cipherText.length; i+=blockSize) {
+            for (int i=0; i<plainText.length; i+=blockSize)
+            {
                 byte[] tmpArr = new byte[blockSize];
-                System.arraycopy(cipherText, i, tmpArr, 0, blockSize);
-
-                if(itr == 0) {
-                    byte[] _decrypted = decrypt(tmpArr, key, algorithm);
-                    byte[] xorPlainTemp = xor(_decrypted, IV_bytes, blockSize);
-
-                    System.arraycopy(xorPlainTemp, 0, _decryptedArray, i, blockSize);
-                    ciphertext.add(tmpArr);
+                System.arraycopy(plainText, i, tmpArr, 0, blockSize);
+                if(itr == 0)
+                {
+                    byte[] _decrypted = encrypt(IV_bytes, key, algorithm);
+                    cipherTextList.add(_decrypted);
+                    byte[] xorPlaintTemp = xor(tmpArr, _decrypted, blockSize);
+                    System.arraycopy(xorPlaintTemp, 0, _decryptedArray, i, blockSize);
                     itr++;
                 }
                 else if(itr > 0) {
-                    byte[] _decrypted = decrypt(tmpArr, key, algorithm);
-                    byte[] xorPlainTemp = xor(_decrypted, ciphertext.get(itr-1), blockSize);
-                    System.arraycopy(xorPlainTemp, 0, _decryptedArray, i, blockSize);
-                    ciphertext.add(tmpArr);
+                    byte[] _decrypted = encrypt(cipherTextList.get(itr-1), key, algorithm);
+                    cipherTextList.add(_decrypted);
+                    byte[] xorPlaintTemp = xor(tmpArr, _decrypted, blockSize);
+                    System.arraycopy(xorPlaintTemp, 0, _decryptedArray, i, blockSize);
                     itr++;
                 }
-
             }
-            writeFile(outputFile,_decryptedArray);
-            System.out.println("Decrypted Completed and Write to " + outputFile);
+            writeFile(outputFile, _decryptedArray);
+            System.out.println("Decryted Completed and Write to " + outputFile + " with " + algorithm + " OFB mode ");
         }
     }
-
-
-
-
 
     private static byte[] xor(byte[] text, byte[] IV, int blockSize) {
         byte[] xor = new byte[blockSize];
@@ -83,6 +86,20 @@ public class CBC {
             xor[i] = (byte) ((text[i]) ^ (IV[i]));
         }
         return xor;
+    }
+
+    private static void incrementCtr(byte[] ctr, int index) {
+
+        ctr[index]++;
+
+        //If byte = 0, it means I have a carry so I'll call
+        //function again with previous index
+        if(ctr[index] == 0) {
+            if(index != 0)
+                incrementCtr(ctr, index - 1);
+            else
+                return;
+        }
     }
 
     private static void writeFile(String fileName, byte[] data) {
@@ -131,6 +148,5 @@ public class CBC {
         cipher.init(Cipher.DECRYPT_MODE, secretKey);
         return cipher.doFinal(cipherText);
     }
-
-
 }
+

@@ -1,7 +1,5 @@
-import javax.crypto.Cipher;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 import java.io.*;
+import java.nio.ByteBuffer;
 
 public class FileCipher {
 
@@ -12,36 +10,57 @@ public class FileCipher {
         String algorithm = args[5];
         String mode = args[6];
         String key_file = args[7];
-        File logFile = new File("run.log");
 
 
         String keyFile = readStringFromFile(key_file);
         String key = keyFile.split("-")[0].trim();
         String IV = keyFile.split("-")[1].trim();
         String nonce = keyFile.split("-")[2].trim();
+
         int blockSize = getBlockSize(algorithm);
+        if(blockSize==8)
+            key = key.substring(8,16);
+        else if(blockSize==16)
+            key = key.substring(0,16);
 
         CBC cbc = new CBC();
+        OFB ofb = new OFB();
+        CTR ctr = new CTR();
+        String eORd_str = "";
+        if(eORd.equalsIgnoreCase("-e"))
+            eORd_str = "enc";
+        else if(eORd.equalsIgnoreCase("-d"))
+            eORd_str = "dec";
+
         if(mode.equalsIgnoreCase("CBC")) {
             System.out.println("CBC işlemleri");
-            //starttime
+            long StartTime = System.currentTimeMillis();
             cbc.cbc_process(IV,algorithm,inputFile,outputFile,blockSize,key,eORd);
-            //endtime
+            long EndTime = System.currentTimeMillis();
+            long ExecutionTime = EndTime - StartTime;
+            writeFile((inputFile + " " + outputFile + " " + eORd_str + " " + algorithm + " " + mode + " " + ExecutionTime).getBytes());
         }
         else if(mode.equalsIgnoreCase("OFB")){
             System.out.println("OFB işlemleri");
+            long StartTime = System.currentTimeMillis();
+            ofb.ofb_process(IV,algorithm,inputFile,outputFile,blockSize,key,eORd);
+            long EndTime = System.currentTimeMillis();
+            long ExecutionTime = EndTime - StartTime;
+            writeFile((inputFile + " " + outputFile + " " + eORd_str + " " + algorithm + " " + mode + " " + ExecutionTime).getBytes());
         }
         else if(mode.equalsIgnoreCase("CTR")){
             System.out.println("CTR işlemleri");
+            long StartTime = System.currentTimeMillis();
+            ctr.ctr_process(IV,algorithm,inputFile,outputFile,blockSize,key,eORd,nonce);
+            long EndTime = System.currentTimeMillis();
+            long ExecutionTime = EndTime - StartTime;
+            writeFile((inputFile + " " + outputFile + " " + eORd_str + " " + algorithm + " " + mode + " " + ExecutionTime).getBytes());
         }
         else{
             System.out.println("Wrong Mode!");
         }
 
-        //ecb.process(algorithm, eORd, inputFile, outputFile, key);
-
     }
-
 
 
     private static String readStringFromFile(String fileName) throws FileNotFoundException {
@@ -54,6 +73,7 @@ public class FileCipher {
         }
         return null;
     }
+
     private static int getBlockSize(String algorithm) {
         int block_size = 0;
         if (algorithm.equalsIgnoreCase("AES")) {
@@ -62,6 +82,17 @@ public class FileCipher {
             block_size = 8;
         }
         return block_size;
+    }
+
+    private static void writeFile(byte[] data) {
+        try {
+            FileOutputStream out = new FileOutputStream("run.log", true);
+            out.write(data);
+            out.write("\n".getBytes());
+            out.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
 
