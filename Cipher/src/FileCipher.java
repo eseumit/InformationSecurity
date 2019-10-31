@@ -1,5 +1,7 @@
 import java.io.*;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.Random;
 
 public class FileCipher {
 
@@ -18,10 +20,17 @@ public class FileCipher {
         String nonce = keyFile.split("-")[2].trim();
 
         int blockSize = getBlockSize(algorithm);
-        if(blockSize==8)
+        if(blockSize==8) {
             key = key.substring(8,16);
+            nonce = nonce.substring(4,8);
+        }
         else if(blockSize==16)
+        {
             key = key.substring(0,16);
+            nonce = nonce.substring(0,8);
+        }
+
+
 
         CBC cbc = new CBC();
         OFB ofb = new OFB();

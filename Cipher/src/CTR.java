@@ -12,15 +12,12 @@ public class CTR {
         String iv1 = IV.substring(0,blockSize);
         byte[] IV_bytes = iv1.getBytes("UTF-8");
         ArrayList<byte[]> cipherTextList = new ArrayList<>();
-        String counter = "";
 
         if(eORd.equalsIgnoreCase("-e")){
-            byte[] b = "00000000".getBytes();
-            byte[] nonce_bytes = nonce.getBytes();
-            byte[] concatenate = new byte[b.length + nonce_bytes.length];
-            //System.out.println("boyut " + concatenate.length);
-            //System.arraycopy(text, 0, padding, 0, text.length);
-            //System.arraycopy(temp, 0, padding, text.length, temp.length);
+            int counter = 0;
+            byte[] counter_bytes = counterCreate(counter, blockSize);
+            byte[] nonce_bytes = nonce.getBytes("UTF-8");
+            byte[] concatenate = concat(nonce_bytes, counter_bytes, blockSize);
             byte[] plainText = readByteFromFile(inputFile);
             byte[] paddingPlainText = padding(plainText, blockSize);
             byte[] _encryptedArray = new byte[paddingPlainText.length];
@@ -31,19 +28,21 @@ public class CTR {
                 System.arraycopy(paddingPlainText, i, tmpArr, 0, blockSize);
                 if(itr == 0)
                 {
-                    System.out.println(new String(tmpArr,"UTF-8"));
-                    byte[] _encrypted = encrypt(IV_bytes, key, algorithm);
-                    cipherTextList.add(_encrypted);
+                    byte[] _encrypted = encrypt(concatenate, key, algorithm);
                     byte[] xorPlaintTemp = xor(tmpArr, _encrypted, blockSize);
                     System.arraycopy(xorPlaintTemp, 0, _encryptedArray, i, blockSize);
+                    counter +=1;
+                    counter_bytes = counterCreate(counter, blockSize);
+                    concatenate = concat(nonce_bytes, counter_bytes,blockSize);
                     itr++;
                 }
                 else if(itr > 0) {
-                    System.out.println(new String(tmpArr,"UTF-8"));
-                    byte[] _encrypted = encrypt(cipherTextList.get(itr-1), key, algorithm);
-                    cipherTextList.add(_encrypted);
+                    byte[] _encrypted = encrypt(concatenate, key, algorithm);
                     byte[] xorPlaintTemp = xor(tmpArr, _encrypted, blockSize);
                     System.arraycopy(xorPlaintTemp, 0, _encryptedArray, i, blockSize);
+                    counter +=1;
+                    counter_bytes = counterCreate(counter, blockSize);
+                    concatenate = concat(nonce_bytes, counter_bytes,blockSize);
                     itr++;
                 }
             }
@@ -51,6 +50,10 @@ public class CTR {
             System.out.println("Encrypted Completed and Write to " + outputFile + " with " + algorithm + " OFB mode ");
         }
         else if(eORd.equalsIgnoreCase("-d")){
+            int counter = 0;
+            byte[] counter_bytes = counterCreate(counter, blockSize);
+            byte[] nonce_bytes = nonce.getBytes("UTF-8");
+            byte[] concatenate = concat(nonce_bytes, counter_bytes, blockSize);
             byte[] plainText = readByteFromFile(inputFile);
             byte[] _decryptedArray = new byte[plainText.length];
             int itr = 0;
@@ -60,23 +63,48 @@ public class CTR {
                 System.arraycopy(plainText, i, tmpArr, 0, blockSize);
                 if(itr == 0)
                 {
-                    byte[] _decrypted = encrypt(IV_bytes, key, algorithm);
-                    cipherTextList.add(_decrypted);
+                    byte[] _decrypted = encrypt(concatenate, key, algorithm);
                     byte[] xorPlaintTemp = xor(tmpArr, _decrypted, blockSize);
                     System.arraycopy(xorPlaintTemp, 0, _decryptedArray, i, blockSize);
+                    counter +=1;
+                    counter_bytes = counterCreate(counter, blockSize);
+                    concatenate = concat(nonce_bytes, counter_bytes,blockSize);
                     itr++;
                 }
                 else if(itr > 0) {
-                    byte[] _decrypted = encrypt(cipherTextList.get(itr-1), key, algorithm);
-                    cipherTextList.add(_decrypted);
+                    byte[] _decrypted = encrypt(concatenate, key, algorithm);
                     byte[] xorPlaintTemp = xor(tmpArr, _decrypted, blockSize);
                     System.arraycopy(xorPlaintTemp, 0, _decryptedArray, i, blockSize);
+                    counter +=1;
+                    counter_bytes = counterCreate(counter, blockSize);
+                    concatenate = concat(nonce_bytes, counter_bytes,blockSize);
                     itr++;
                 }
             }
             writeFile(outputFile, _decryptedArray);
             System.out.println("Decryted Completed and Write to " + outputFile + " with " + algorithm + " OFB mode ");
         }
+    }
+
+    private byte[] concat(byte[] nonce_bytes, byte[] counter_bytes, int blockSize) {
+        byte[] concatenate = new byte[blockSize];
+        System.arraycopy(nonce_bytes, 0, concatenate, 0, nonce_bytes.length);
+        System.arraycopy(counter_bytes, 0, concatenate, 0, counter_bytes.length);
+        return concatenate;
+    }
+
+    private byte[] counterCreate(int counter, int blockSize) {
+        byte[] counter_bytes = new byte[blockSize / 2];
+        if(blockSize == 8){
+            counter_bytes = intToByteArray(counter);
+        }
+        else if(blockSize == 16){
+            byte[] temp1 = intToByteArray(counter);
+            byte[] temp2 = intToByteArray(counter);
+            System.arraycopy(temp1, 0, counter_bytes, 0, temp1.length);
+            System.arraycopy(temp2, 0, counter_bytes, temp1.length, blockSize/4);
+        }
+        return counter_bytes;
     }
 
     private static byte[] xor(byte[] text, byte[] IV, int blockSize) {
@@ -148,5 +176,22 @@ public class CTR {
         cipher.init(Cipher.DECRYPT_MODE, secretKey);
         return cipher.doFinal(cipherText);
     }
+
+    public static int byteArrayToInt(byte[] b) {
+        return   b[3] & 0xFF |
+                (b[2] & 0xFF) << 8 |
+                (b[1] & 0xFF) << 16 |
+                (b[0] & 0xFF) << 24;
+    }
+
+    public static byte[] intToByteArray(int a) {
+        return new byte[] {
+                (byte) ((a >> 24) & 0xFF),
+                (byte) ((a >> 16) & 0xFF),
+                (byte) ((a >> 8) & 0xFF),
+                (byte) (a & 0xFF)
+        };
+    }
+
 }
 

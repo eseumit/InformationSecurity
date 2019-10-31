@@ -21,7 +21,6 @@ public class OFB {
                 System.arraycopy(paddingPlainText, i, tmpArr, 0, blockSize);
                 if(itr == 0)
                 {
-                    System.out.println(new String(tmpArr,"UTF-8"));
                     byte[] _encrypted = encrypt(IV_bytes, key, algorithm);
                     cipherTextList.add(_encrypted);
                     byte[] xorPlaintTemp = xor(tmpArr, _encrypted, blockSize);
@@ -29,7 +28,6 @@ public class OFB {
                     itr++;
                 }
                 else if(itr > 0) {
-                    System.out.println(new String(tmpArr,"UTF-8"));
                     byte[] _encrypted = encrypt(cipherTextList.get(itr-1), key, algorithm);
                     cipherTextList.add(_encrypted);
                     byte[] xorPlaintTemp = xor(tmpArr, _encrypted, blockSize);
