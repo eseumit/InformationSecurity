@@ -13,8 +13,13 @@ public class FileCipher {
         String mode = args[6];
         String key_file = args[7];
 
+        CBC cbc = new CBC();
+        OFB ofb = new OFB();
+        CTR ctr = new CTR();
+
 
         String keyFile = readStringFromFile(key_file);
+        assert keyFile != null;
         String key = keyFile.split("-")[0].trim();
         String IV = keyFile.split("-")[1].trim();
         String nonce = keyFile.split("-")[2].trim();
@@ -31,10 +36,6 @@ public class FileCipher {
         }
 
 
-
-        CBC cbc = new CBC();
-        OFB ofb = new OFB();
-        CTR ctr = new CTR();
         String eORd_str = "";
         if(eORd.equalsIgnoreCase("-e"))
             eORd_str = "enc";
@@ -42,7 +43,7 @@ public class FileCipher {
             eORd_str = "dec";
 
         if(mode.equalsIgnoreCase("CBC")) {
-            System.out.println("CBC işlemleri");
+            System.out.println("CBC PROCESS");
             long StartTime = System.currentTimeMillis();
             cbc.cbc_process(IV,algorithm,inputFile,outputFile,blockSize,key,eORd);
             long EndTime = System.currentTimeMillis();
@@ -50,7 +51,7 @@ public class FileCipher {
             writeFile((inputFile + " " + outputFile + " " + eORd_str + " " + algorithm + " " + mode + " " + ExecutionTime).getBytes());
         }
         else if(mode.equalsIgnoreCase("OFB")){
-            System.out.println("OFB işlemleri");
+            System.out.println("OFB PROCESS");
             long StartTime = System.currentTimeMillis();
             ofb.ofb_process(IV,algorithm,inputFile,outputFile,blockSize,key,eORd);
             long EndTime = System.currentTimeMillis();
@@ -58,9 +59,9 @@ public class FileCipher {
             writeFile((inputFile + " " + outputFile + " " + eORd_str + " " + algorithm + " " + mode + " " + ExecutionTime).getBytes());
         }
         else if(mode.equalsIgnoreCase("CTR")){
-            System.out.println("CTR işlemleri");
+            System.out.println("CTR PROCESS");
             long StartTime = System.currentTimeMillis();
-            ctr.ctr_process(IV,algorithm,inputFile,outputFile,blockSize,key,eORd,nonce);
+            ctr.ctr_process(algorithm,inputFile,outputFile,blockSize,key,eORd,nonce);
             long EndTime = System.currentTimeMillis();
             long ExecutionTime = EndTime - StartTime;
             writeFile((inputFile + " " + outputFile + " " + eORd_str + " " + algorithm + " " + mode + " " + ExecutionTime).getBytes());
